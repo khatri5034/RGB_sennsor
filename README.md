@@ -1,22 +1,44 @@
-# CSC615-RGB-Sensor
+# RGB Color Sensor (TCS34725)
 
-This is an Group assignment.  
+A C library and demo program that reads live color data from a **TCS34725 RGB color sensor** over I2C on a Raspberry Pi, converts the raw readings into a normalized RGB value, and matches it against a palette of known colors with a confidence score.
 
-This is a physical class, so I will want to see what you do in action.  Documentation, including short video clips (can use your cell phone) are required as part of the submission.  It might be handy to have a friend record while you execute your program.
+## How it works
 
-You will also need to submit hardware drawings.  These should be neat (can be either electronic or hand drawn, then scanned) of how the hardware is connected to the Raspberry Pi.  This includes which pin (physical and GPIO), positive and negative flow, resisters, etc.  I should be able to rebuild your setup from this diagram and then run your program and get the same results.  Also see https://www.circuit-diagram.org/editor/# if you want to use that (they have a Raspberry Pi template).
+1. `ColorLib_Init()` verifies the sensor over I2C (checks device ID `0x44`/`0x4D`), then configures integration time and gain and powers on the ADC.
+2. `ColorLib_GetMatch()` reads the raw Clear/Red/Green/Blue channels, normalizes R/G/B against the Clear channel to cancel out ambient brightness, scales the brightest channel to full intensity, and applies gamma correction (γ = 2.2) to approximate how the color appears to the human eye.
+3. The resulting RGB value is compared (Euclidean distance in RGB space) against a table of 16 predefined target colors (`PROJECT_COLORS` in `ColorLib.h`) to find the closest match and compute a confidence percentage.
+4. `main.c` loops forever, printing the matched color's hex value and name every 500ms, and exits cleanly on `Ctrl+C` (SIGINT).
 
-## Assignment Description
+```
+Hex: #FF0000 | Color: Red
+Hex: #00FF00 | Color: Green
+```
 
-This project is to get the RGB sensor working and properly detecting colors.
+A demo video (`rgb-sensor-video.mp4`) and the assignment write-up (`Assignment5_GroupProject_RGBSensor.pdf`) are included in this repo.
 
-This is a group project.
+## Hardware
 
-It should be designed as a library/module that can be easily included in another project
+- Raspberry Pi with I2C enabled
+- TCS34725 RGB color sensor (I2C address `0x29`), wired to the Pi's I2C bus
 
-The main program should call the necessary functions and output should be BOTH an R G B Value set (in Hex) and a Color Name (Color can be approximated with a confidence value)
+## Project layout
 
-The code should be as concise as possible and well documented.
+| File | Purpose |
+|---|---|
+| `main.c` | Program entry point; polls the sensor and prints color matches |
+| `lib/ColorLib.c` / `.h` | Sensor driver + color-matching library (designed to be reusable in other projects) |
+| `lib/DEV_Config.c` / `.h` | Low-level I2C/GPIO hardware abstraction |
+| `Makefile` | Build configuration (outputs to `dist/`) |
 
-The writeup should not only contain the normal sections but for the analysis section should include a "Use section" that describes how to use the library.
+## Build & run
 
+```bash
+make            # compiles to ./assignment5
+sudo ./assignment5
+```
+
+Run `make clean` to remove build artifacts.
+
+## Team
+
+Group project for CSC 615, San Francisco State University — Haibin Cao, Eric Ahsue, Kiran Khatri, John Tsiglieris
